@@ -22,8 +22,8 @@ export function CollectionToolbar({ onExport, onImportFile, onPrint, status }: P
   const fileRef = useRef<HTMLInputElement>(null);
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 12px 8px", display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
-      <button style={btn} onClick={onExport}>⬇ Export CSV</button>
-      <button style={btn} onClick={() => fileRef.current?.click()}>⬆ Import CSV</button>
+      <button style={btn} onClick={onExport} aria-label="Export collection as CSV">⬇ Export CSV</button>
+      <button style={btn} onClick={() => fileRef.current?.click()} aria-label="Import collection CSV">⬆ Import CSV</button>
       <input
         ref={fileRef}
         type="file"
@@ -35,7 +35,7 @@ export function CollectionToolbar({ onExport, onImportFile, onPrint, status }: P
           e.target.value = "";
         }}
       />
-      <button style={btn} onClick={onPrint}>🖨 Print</button>
+      <button style={btn} onClick={onPrint} aria-label="Print collection">🖨 Print</button>
       {status && <span style={{ fontSize: 9, color: "#94a3b8" }}>{status}</span>}
     </div>
   );

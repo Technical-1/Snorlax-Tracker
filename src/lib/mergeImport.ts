@@ -68,7 +68,7 @@ export function mergeImport(
         report.imagesSet++;
       }
     }
-    if (rec.img || rec.price != null) overrides[row.id] = rec;
+    if (rec.img != null || rec.price != null) overrides[row.id] = rec;
   }
 
   return { owned, overrides, report };

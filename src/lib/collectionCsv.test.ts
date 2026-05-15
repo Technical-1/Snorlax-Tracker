@@ -44,4 +44,15 @@ describe("parseCsv", () => {
     expect(() => parseCsv("")).toThrow(/csv/i);
     expect(() => parseCsv("name,owned\nfoo,yes")).toThrow(/id/i);
   });
+  it("handles CRLF line endings", () => {
+    const rows = parseCsv("id,owned\r\nq-1,yes\r\nq-2,no\r\n");
+    expect(rows).toEqual([
+      { id: "q-1", owned: true },
+      { id: "q-2", owned: false },
+    ]);
+  });
+  it("preserves a newline inside a quoted field", () => {
+    const rows = parseCsv('id,owned,manual_image\nn-1,yes,"line1\nline2"');
+    expect(rows).toEqual([{ id: "n-1", owned: true, img: "line1\nline2" }]);
+  });
 });

@@ -95,8 +95,8 @@ export default function App() {
     a.href = url;
     a.download = "snorlax-collection.csv";
     a.click();
-    URL.revokeObjectURL(url);
     setImportStatus(null);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   const handleImportFile = (file: File) => {

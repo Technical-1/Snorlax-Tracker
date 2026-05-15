@@ -125,7 +125,7 @@ export function parseCsv(text: string): ParsedRow[] {
       if (raw !== "" && Number.isFinite(n)) row.price = n;
     }
     if (iImg !== -1) {
-      const img = cells[iImg] ?? "";
+      const img = (cells[iImg] ?? "").trim();
       if (img !== "") {
         row.img = img;
         const k = (cells[iKind] ?? "").trim();
