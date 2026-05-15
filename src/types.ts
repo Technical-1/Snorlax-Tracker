@@ -39,5 +39,6 @@ export type EnrichedCard = Card & {
   low: number | null;
   high: number | null;
   artist: string;
+  imgProxy?: boolean;
   allPrices?: Record<string, PriceTier>;
 };

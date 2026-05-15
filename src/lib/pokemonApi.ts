@@ -1,4 +1,5 @@
 import type { ApiCardData, ApiData, Card, EnrichedCard, PriceTier } from "../types";
+import { CARD_IMAGES } from "../data/card-images.generated";
 
 type RawPrices = Record<string, PriceTier>;
 
@@ -39,10 +40,13 @@ export function enrichCard(c: Card, apiData: ApiData): EnrichedCard {
     low = rh.low ?? null;
     high = rh.high ?? null;
   }
+  const gen = CARD_IMAGES[c.id];
+  const base = gen?.base ?? null;
   return {
     ...c,
-    img: api.img || null,
-    imgLarge: api.imgLarge || null,
+    img: base ? `${base}/low.webp` : null,
+    imgLarge: base ? `${base}/high.webp` : null,
+    imgProxy: gen?.proxy ?? false,
     market,
     low,
     high,
