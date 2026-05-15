@@ -40,6 +40,15 @@ image is used as a labeled proxy (an "EN proxy" badge is shown). Otherwise the
 live from pokemontcg.io (cards whose IDs predate pokemontcg.io's ID scheme have
 images but no price).
 
+## Manual overrides
+
+Click any card to open its detail view. There you can mark it owned, set a
+manual image (paste a URL or upload a file — uploads are downscaled and stored
+in `localStorage`), and set a manual price. Manual values override fetched data
+everywhere (including the collection-value total) and persist across reloads
+under `localStorage["snorlax_user_v1"]`. Owned state remains under
+`localStorage["snorlax_v3"]`.
+
 ## Structure
 
 - `src/data/cards.ts` — the full card database + era/language constants

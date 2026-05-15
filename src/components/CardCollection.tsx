@@ -33,7 +33,7 @@ export function CardCollection({ groupKeys, grouped, view, owned, shownCount, on
               </div>
             </div>
             {view==="grid"
-              ? <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:6}}>{cards.map(c=><GridCard key={c.id} card={c} isOwned={owned.has(c.id)} onToggle={onToggle} onOpen={onOpen}/>)}</div>
+              ? <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(124px,1fr))",gap:8}}>{cards.map(c=><GridCard key={c.id} card={c} isOwned={owned.has(c.id)} onToggle={onToggle} onOpen={onOpen}/>)}</div>
               : <div style={{display:"flex",flexDirection:"column",gap:4}}>{cards.map(c=><ListRow key={c.id} card={c} isOwned={owned.has(c.id)} onToggle={onToggle} onOpen={onOpen}/>)}</div>
             }
           </div>
