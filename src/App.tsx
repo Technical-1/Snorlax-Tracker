@@ -1,33 +1,39 @@
 import { useMemo, useState } from "react";
 import { CARDS, ERA_ORDER } from "./data/cards";
 import { enrichCard } from "./lib/pokemonApi";
+import { applyUserOverrides } from "./lib/userOverrides";
+import { downscaleImage } from "./lib/imageDownscale";
 import { useCardPrices } from "./hooks/useCardPrices";
 import { useOwnedCards } from "./hooks/useOwnedCards";
+import { useUserCardData } from "./hooks/useUserCardData";
 import { Header } from "./components/Header";
 import { Filters } from "./components/Filters";
 import { CardCollection } from "./components/CardCollection";
-import { CardModal } from "./components/CardModal";
+import { CardDetail } from "./components/CardDetail";
 import type { EnrichedCard } from "./types";
 
 export default function App() {
   const { apiData, loadingApi, loadMsg } = useCardPrices();
   const { owned, toggle } = useOwnedCards();
+  const { overrides, setImage, clearImage, setPrice, clearPrice } = useUserCardData();
 
   const [eraFilter, setEraFilter] = useState("All");
   const [langFilter, setLangFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [ownedOnly, setOwnedOnly] = useState(false);
   const [view, setView] = useState("grid");
-  const [modal, setModal] = useState<EnrichedCard | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("era");
 
-  const enriched = useMemo(
-    () => CARDS.map((c) => enrichCard(c, apiData)),
-    [apiData]
+  const enriched = useMemo(() => CARDS.map((c) => enrichCard(c, apiData)), [apiData]);
+
+  const displayed = useMemo(
+    () => enriched.map((c) => applyUserOverrides(c, overrides[c.id])),
+    [enriched, overrides]
   );
 
   const filtered = useMemo(() => {
-    let cards = enriched.filter((c) => {
+    let cards = displayed.filter((c) => {
       if (eraFilter !== "All" && c.era !== eraFilter) return false;
       if (langFilter !== "All" && c.lang !== langFilter) return false;
       if (ownedOnly && !owned.has(c.id)) return false;
@@ -47,7 +53,7 @@ export default function App() {
     else if (sortBy === "name")
       cards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
     return cards;
-  }, [enriched, eraFilter, langFilter, ownedOnly, search, sortBy, owned]);
+  }, [displayed, eraFilter, langFilter, ownedOnly, search, sortBy, owned]);
 
   const grouped = useMemo<Record<string, EnrichedCard[]>>(() => {
     if (sortBy !== "era") return { Results: filtered };
@@ -60,16 +66,17 @@ export default function App() {
   }, [filtered, sortBy]);
 
   const groupKeys =
-    sortBy === "era"
-      ? ERA_ORDER.filter((e) => grouped[e]?.length)
-      : ["Results"];
+    sortBy === "era" ? ERA_ORDER.filter((e) => grouped[e]?.length) : ["Results"];
 
   const total = CARDS.length;
   const ownedCount = owned.size;
   const pct = total ? Math.round((ownedCount / total) * 100) : 0;
-  const ownedValue = enriched
+  const ownedValue = displayed
     .filter((c) => owned.has(c.id) && c.market)
     .reduce((s, c) => s + (c.market || 0), 0);
+
+  const openEnriched = openId ? enriched.find((c) => c.id === openId) ?? null : null;
+  const openDisplayed = openId ? displayed.find((c) => c.id === openId) ?? null : null;
 
   return (
     <div
@@ -81,13 +88,26 @@ export default function App() {
         paddingBottom: 60,
       }}
     >
-      <CardModal
-        modal={modal}
-        isOwned={modal ? owned.has(modal.id) : false}
-        loadingApi={loadingApi}
-        onToggle={toggle}
-        onClose={() => setModal(null)}
-      />
+      {openEnriched && openDisplayed && (
+        <CardDetail
+          card={openDisplayed}
+          fetchedMarket={openEnriched.market}
+          fetchedAllPrices={openEnriched.allPrices}
+          override={overrides[openEnriched.id]}
+          isOwned={owned.has(openEnriched.id)}
+          loadingApi={loadingApi}
+          onToggleOwned={() => toggle(openEnriched.id)}
+          onSetImageUrl={(url) => setImage(openEnriched.id, url, "url")}
+          onUploadImage={async (file) => {
+            const dataUrl = await downscaleImage(file, {});
+            return setImage(openEnriched.id, dataUrl, "upload");
+          }}
+          onClearImage={() => clearImage(openEnriched.id)}
+          onSetPrice={(n) => setPrice(openEnriched.id, n)}
+          onClearPrice={() => clearPrice(openEnriched.id)}
+          onClose={() => setOpenId(null)}
+        />
+      )}
       <Header
         ownedCount={ownedCount}
         total={total}
@@ -119,7 +139,7 @@ export default function App() {
         owned={owned}
         shownCount={filtered.length}
         onToggle={toggle}
-        onOpen={setModal}
+        onOpen={(c) => setOpenId(c.id)}
       />
     </div>
   );
