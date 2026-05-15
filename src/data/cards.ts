@@ -1,15 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import type { Card } from "../types";
 
-// ─── COMPLETE CARD DATABASE ───────────────────────────────────────────────────
-// English cards include pokemontcg.io API card IDs for image + price fetching.
-// Non-English / variant cards are static entries with no API ID.
-//
-// API card ID format: "{setCode}-{number}" e.g. "jungle-11"
-// Images: https://images.pokemontcg.io/{setCode}/{number}.png
-// Prices come from the pokemontcg.io /v2/cards/{id} response → card.tcgplayer.prices
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CARDS = [
+export const CARDS: Card[] = [
   // ══ ENGLISH · WIZARDS ERA ════════════════════════════════════════════════════
   { id:"jungle-11",      name:"Snorlax",                    set:"Jungle",                       num:"11/64",    rarity:"Rare Holo",              era:"Wizards",       lang:"EN" },
   { id:"jungle-27",      name:"Snorlax",                    set:"Jungle",                       num:"27/64",    rarity:"Rare",                   era:"Wizards",       lang:"EN" },
@@ -231,351 +222,49 @@ const CARDS = [
   { id:"es-151",         name:"Snorlax",            set:"Pokémon 151 (ES)",               num:"143/165", rarity:"Common",      era:"Sc&Vi",    lang:"ES" },
 ];
 
-// Cards with API IDs get images + prices fetched; apiId overrides id for fetching (reverse holos share image with base card)
-const API_IDS = [...new Set(CARDS.filter(c => c.lang === "EN" && !c.id.includes("-rh") && !c.id.includes("pocket-") && !c.id.includes("classic")).map(c => c.apiId || c.id))];
+// apiId overrides id for fetching (reverse holos share image with base card)
+export const API_IDS: string[] = [
+  ...new Set(
+    CARDS.filter(
+      (c) =>
+        c.lang === "EN" &&
+        !c.id.includes("-rh") &&
+        !c.id.includes("pocket-") &&
+        !c.id.includes("classic")
+    ).map((c) => c.apiId || c.id)
+  ),
+];
 
-const ERA_ORDER = ["Wizards","EX Era","D&P","HGSS","B&W","XY","Sun & Moon","Sw&Sh","Sc&Vi","Pocket"];
-const ERA_LABEL = { Wizards:"Wizards Era", "EX Era":"EX Era", "D&P":"Diamond & Pearl", HGSS:"HeartGold SoulSilver", "B&W":"Black & White", XY:"XY", "Sun & Moon":"Sun & Moon", "Sw&Sh":"Sword & Shield", "Sc&Vi":"Scarlet & Violet", Pocket:"TCG Pocket" };
-const ERA_COLOR = { Wizards:"#9ca3af","EX Era":"#ef4444","D&P":"#3b82f6",HGSS:"#f59e0b","B&W":"#6b7280",XY:"#8b5cf6","Sun & Moon":"#f97316","Sw&Sh":"#0ea5e9","Sc&Vi":"#ec4899",Pocket:"#10b981" };
-const LANG_FLAG = { EN:"🇺🇸",JP:"🇯🇵",KR:"🇰🇷","ZH-TW":"🇹🇼","ZH-CN":"🇨🇳",PT:"🇧🇷",DE:"🇩🇪",FR:"🇫🇷",IT:"🇮🇹",ES:"🇪🇸" };
-const LANG_LABEL = { EN:"English",JP:"Japanese",KR:"Korean","ZH-TW":"Chinese (Trad.)","ZH-CN":"Chinese (Simp.)",PT:"Portuguese",DE:"German",FR:"French",IT:"Italian",ES:"Spanish" };
-const ALL_LANGS = ["All","EN","JP","KR","ZH-TW","ZH-CN","PT","DE","FR","IT","ES"];
+export const ERA_ORDER: string[] = [
+  "Wizards", "EX Era", "D&P", "HGSS", "B&W", "XY",
+  "Sun & Moon", "Sw&Sh", "Sc&Vi", "Pocket",
+];
 
-function rarityGlow(r=""){
-  const s=r.toLowerCase();
-  if(s.includes("rainbow")||s.includes("immersive")) return "#d946ef";
-  if(s.includes("gold")||s.includes("ur secret")) return "#f59e0b";
-  if(s.includes("special illustration")||s.includes("sir")||s.includes("chr")||s.includes("art rare")||s.includes(" ar")) return "#f472b6";
-  if(s.includes("shiny")) return "#34d399";
-  if(s.includes("vmax")||s.includes("gx")||s.includes("lv.x")||s.includes("★★")) return "#c084fc";
-  if(s.includes(" ex")||s.includes("ex ")) return "#fb923c";
-  if(s.includes(" v ")||s.includes("ultra rare v")) return "#818cf8";
-  if(s.includes("holo")&&!s.includes("reverse")) return "#60a5fa";
-  if(s.includes("reverse")||s.includes("trainer gallery")) return "#7dd3fc";
-  if(s.includes("promo")) return "#2dd4bf";
-  return null;
-}
+export const ERA_LABEL: Record<string, string> = {
+  Wizards: "Wizards Era", "EX Era": "EX Era", "D&P": "Diamond & Pearl",
+  HGSS: "HeartGold SoulSilver", "B&W": "Black & White", XY: "XY",
+  "Sun & Moon": "Sun & Moon", "Sw&Sh": "Sword & Shield",
+  "Sc&Vi": "Scarlet & Violet", Pocket: "TCG Pocket",
+};
 
-function fmtPrice(p){ return p != null ? `$${Number(p).toFixed(2)}` : null; }
+export const ERA_COLOR: Record<string, string> = {
+  Wizards: "#9ca3af", "EX Era": "#ef4444", "D&P": "#3b82f6",
+  HGSS: "#f59e0b", "B&W": "#6b7280", XY: "#8b5cf6",
+  "Sun & Moon": "#f97316", "Sw&Sh": "#0ea5e9", "Sc&Vi": "#ec4899",
+  Pocket: "#10b981",
+};
 
-export default function App() {
-  const [apiData, setApiData] = useState({}); // { cardId: { img, prices } }
-  const [loadingApi, setLoadingApi] = useState(true);
-  const [loadMsg, setLoadMsg] = useState("Loading card data…");
-  const [owned, setOwned] = useState(() => { try{return new Set(JSON.parse(localStorage.getItem("snorlax_v3")||"[]"))}catch{return new Set()} });
-  const [eraFilter, setEraFilter] = useState("All");
-  const [langFilter, setLangFilter] = useState("All");
-  const [search, setSearch] = useState("");
-  const [ownedOnly, setOwnedOnly] = useState(false);
-  const [view, setView] = useState("grid"); // grid | list
-  const [modal, setModal] = useState(null);
-  const [sortBy, setSortBy] = useState("era"); // era | price | name
+export const LANG_FLAG: Record<string, string> = {
+  EN: "🇺🇸", JP: "🇯🇵", KR: "🇰🇷", "ZH-TW": "🇹🇼", "ZH-CN": "🇨🇳",
+  PT: "🇧🇷", DE: "🇩🇪", FR: "🇫🇷", IT: "🇮🇹", ES: "🇪🇸",
+};
 
-  // Fetch all English card data from pokemontcg.io
-  useEffect(() => {
-    (async () => {
-      const result = {};
-      try {
-        // Batch into pages
-        let page = 1;
-        while (true) {
-          setLoadMsg(`Fetching card data (page ${page})…`);
-          const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:143&pageSize=250&page=${page}`);
-          const data = await res.json();
-          for (const card of (data.data || [])) {
-            const prices = card.tcgplayer?.prices || {};
-            // Pick best price tier: holofoil > normal > reverseHolofoil > 1stEditionHolofoil
-            const tier = prices.holofoil || prices.normal || prices.reverseHolofoil || prices["1stEditionHolofoil"] || null;
-            result[card.id] = {
-              img: card.images?.small || null,
-              imgLarge: card.images?.large || null,
-              market: tier?.market ?? null,
-              low: tier?.low ?? null,
-              high: tier?.high ?? null,
-              priceTypes: Object.keys(prices),
-              allPrices: prices,
-              artist: card.artist || "",
-            };
-          }
-          if (!data.data || data.data.length < 250) break;
-          page++; if (page > 6) break;
-        }
-      } catch(e) { console.warn("API error", e); }
-      setApiData(result);
-      setLoadingApi(false);
-    })();
-  }, []);
+export const LANG_LABEL: Record<string, string> = {
+  EN: "English", JP: "Japanese", KR: "Korean",
+  "ZH-TW": "Chinese (Trad.)", "ZH-CN": "Chinese (Simp.)",
+  PT: "Portuguese", DE: "German", FR: "French", IT: "Italian", ES: "Spanish",
+};
 
-  useEffect(() => { try{localStorage.setItem("snorlax_v3",JSON.stringify([...owned]))}catch{} }, [owned]);
-  const toggle = useCallback(id => setOwned(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n}),[]);
-
-  // Enrich cards with API data
-  const enriched = useMemo(() => CARDS.map(c => {
-    const fetchId = c.apiId || c.id;
-    const api = apiData[fetchId] || {};
-    // For reverse holos, look up reverseHolofoil price specifically
-    let market = api.market ?? null;
-    let low = api.low ?? null;
-    let high = api.high ?? null;
-    if (c.id.includes("-rh") && api.allPrices?.reverseHolofoil) {
-      const rh = api.allPrices.reverseHolofoil;
-      market = rh.market ?? null; low = rh.low ?? null; high = rh.high ?? null;
-    }
-    return { ...c, img: api.img || null, imgLarge: api.imgLarge || null, market, low, high, artist: api.artist || "" };
-  }), [apiData]);
-
-  const filtered = useMemo(() => {
-    let cards = enriched.filter(c => {
-      if (eraFilter !== "All" && c.era !== eraFilter) return false;
-      if (langFilter !== "All" && c.lang !== langFilter) return false;
-      if (ownedOnly && !owned.has(c.id)) return false;
-      if (search) { const q = search.toLowerCase(); return c.name.toLowerCase().includes(q) || c.set.toLowerCase().includes(q) || c.num.toLowerCase().includes(q) || c.rarity.toLowerCase().includes(q); }
-      return true;
-    });
-    if (sortBy === "price") cards = [...cards].sort((a,b) => (b.market||0) - (a.market||0));
-    else if (sortBy === "name") cards = [...cards].sort((a,b) => a.name.localeCompare(b.name));
-    return cards;
-  }, [enriched, eraFilter, langFilter, ownedOnly, search, sortBy, owned]);
-
-  const grouped = useMemo(() => {
-    if (sortBy !== "era") return { "Results": filtered };
-    const g = {};
-    filtered.forEach(c => { if(!g[c.era])g[c.era]=[]; g[c.era].push(c); });
-    return g;
-  }, [filtered, sortBy]);
-
-  const groupKeys = sortBy === "era" ? ERA_ORDER.filter(e => grouped[e]?.length) : ["Results"];
-
-  const total = CARDS.length;
-  const ownedCount = owned.size;
-  const pct = total ? Math.round((ownedCount/total)*100) : 0;
-  const ownedValue = enriched.filter(c => owned.has(c.id) && c.market).reduce((s,c) => s + c.market, 0);
-
-  // ── CARD COMPONENTS ──────────────────────────────────────────────────────────
-  function GridCard({ card }) {
-    const isOwned = owned.has(card.id);
-    const glow = rarityGlow(card.rarity);
-    const [imgErr, setImgErr] = useState(false);
-    return (
-      <div onClick={()=>toggle(card.id)} onDoubleClick={()=>setModal(card)}
-        title={`${card.name} — ${card.set}\nDouble-click for details`}
-        style={{ borderRadius:10,overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column",
-          background:isOwned?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",
-          border:`1px solid ${isOwned?"rgba(74,222,128,0.4)":glow?`${glow}44`:"rgba(255,255,255,0.07)"}`,
-          boxShadow:isOwned&&glow?`0 0 12px ${glow}44`:"none", transition:"all 0.15s" }}>
-        <div style={{background:"rgba(0,0,0,0.35)",minHeight:88,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-          {card.img && !imgErr
-            ? <img src={card.img} onError={()=>setImgErr(true)} alt={card.name} style={{width:"100%",maxWidth:112,display:"block",margin:"auto",opacity:isOwned?1:0.55,transition:"opacity 0.2s"}} />
-            : <div style={{fontSize:28,padding:"12px 0",opacity:0.25}}>😴</div>
-          }
-          {isOwned && <div style={{position:"absolute",top:4,right:4,width:17,height:17,borderRadius:999,background:"#4ade80",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#000"}}>✓</div>}
-          <div style={{position:"absolute",top:3,left:4,fontSize:11}}>{LANG_FLAG[card.lang]||"🌐"}</div>
-        </div>
-        <div style={{padding:"6px 7px 7px",flex:1,display:"flex",flexDirection:"column",gap:1}}>
-          <div style={{fontSize:10,fontWeight:700,color:isOwned?"#4ade80":"#e2e8f0",lineHeight:1.2}}>{card.name}</div>
-          <div style={{fontSize:9,color:"#64748b",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{card.set}</div>
-          <div style={{fontSize:9,color:"#475569"}}>#{card.num}</div>
-          <div style={{fontSize:8,color:glow||"#475569",marginTop:1,lineHeight:1.2}}>{card.rarity}</div>
-          {card.market != null && (
-            <div style={{marginTop:3,fontSize:10,fontWeight:700,color:"#fbbf24"}}>{fmtPrice(card.market)}</div>
-          )}
-          {card.note && <div style={{fontSize:7.5,color:"#374151",fontStyle:"italic",marginTop:1,lineHeight:1.2}}>{card.note}</div>}
-        </div>
-      </div>
-    );
-  }
-
-  function ListRow({ card }) {
-    const isOwned = owned.has(card.id);
-    const glow = rarityGlow(card.rarity);
-    const [imgErr, setImgErr] = useState(false);
-    return (
-      <div onClick={()=>toggle(card.id)} onDoubleClick={()=>setModal(card)}
-        style={{ display:"flex",alignItems:"center",gap:9,padding:"7px 10px",borderRadius:8,cursor:"pointer",transition:"all 0.12s",
-          background:isOwned?"rgba(74,222,128,0.07)":"rgba(255,255,255,0.03)",
-          border:`1px solid ${isOwned?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.06)"}` }}>
-        {card.img && !imgErr
-          ? <img src={card.img} onError={()=>setImgErr(true)} alt="" style={{width:34,height:48,objectFit:"contain",borderRadius:3,flexShrink:0,opacity:isOwned?1:0.5}} />
-          : <div style={{width:34,height:48,background:"rgba(255,255,255,0.04)",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,opacity:0.3}}>😴</div>}
-        <div style={{width:17,height:17,borderRadius:4,border:`2px solid ${isOwned?"#4ade80":"rgba(255,255,255,0.18)"}`,background:isOwned?"#4ade80":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#000",flexShrink:0,transition:"all 0.12s"}}>{isOwned?"✓":""}</div>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:11,color:isOwned?"#4ade80":"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{LANG_FLAG[card.lang]} {card.name}</div>
-          <div style={{fontSize:9,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.set} · #{card.num}</div>
-          {card.note && <div style={{fontSize:8,color:"#374151",fontStyle:"italic"}}>{card.note}</div>}
-        </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          {card.market != null && <div style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>{fmtPrice(card.market)}</div>}
-          <div style={{fontSize:8,color:glow||"#475569",marginTop:1,maxWidth:90,textAlign:"right"}}>{card.rarity}</div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── MODAL ────────────────────────────────────────────────────────────────────
-  const Modal = () => {
-    if (!modal) return null;
-    const isOwned = owned.has(modal.id);
-    const prices = modal.allPrices || {};
-    const priceRows = Object.entries(prices).filter(([,v])=>v?.market);
-    return (
-      <div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto"}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(140deg,#1e1b4b,#0f0c29)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:16,padding:20,maxWidth:360,width:"100%"}}>
-          <div style={{textAlign:"center"}}>
-            {(modal.imgLarge||modal.img)
-              ? <img src={modal.imgLarge||modal.img} alt={modal.name} style={{maxWidth:"100%",maxHeight:280,borderRadius:10,boxShadow:"0 6px 40px rgba(0,0,0,0.6)"}} />
-              : <div style={{fontSize:72,padding:16}}>😴</div>}
-            <div style={{marginTop:10,fontWeight:900,fontSize:16,color:"#e2e8f0"}}>{modal.name}</div>
-            <div style={{color:"#94a3b8",fontSize:12,marginTop:3}}>{LANG_FLAG[modal.lang]} {modal.set}</div>
-            <div style={{color:"#64748b",fontSize:11,marginTop:2}}>#{modal.num} · {modal.rarity}</div>
-            {modal.artist && <div style={{color:"#475569",fontSize:10,marginTop:2}}>🎨 {modal.artist}</div>}
-            {modal.note && <div style={{color:"#3b82f6",fontSize:10,marginTop:4,fontStyle:"italic"}}>{modal.note}</div>}
-          </div>
-
-          {/* Prices */}
-          {priceRows.length > 0 && (
-            <div style={{marginTop:14,background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"10px 12px"}}>
-              <div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>TCGPlayer Prices</div>
-              {priceRows.map(([type, p]) => (
-                <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <span style={{fontSize:10,color:"#64748b",textTransform:"capitalize"}}>{type.replace(/([A-Z])/g," $1").trim()}</span>
-                  <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>{fmtPrice(p.market)} <span style={{fontSize:9,color:"#475569",fontWeight:400}}>({fmtPrice(p.low)}–{fmtPrice(p.high)})</span></span>
-                </div>
-              ))}
-            </div>
-          )}
-          {modal.market == null && modal.lang === "EN" && !loadingApi && (
-            <div style={{marginTop:10,textAlign:"center",fontSize:10,color:"#374151"}}>No price data available for this card</div>
-          )}
-          {modal.lang !== "EN" && (
-            <div style={{marginTop:10,textAlign:"center",fontSize:10,color:"#374151"}}>Price data only available for English cards via TCGPlayer</div>
-          )}
-
-          <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center"}}>
-            <button onClick={()=>{toggle(modal.id)}} style={{padding:"8px 16px",borderRadius:999,border:"none",background:isOwned?"#ef4444":"#4ade80",color:"#000",fontWeight:800,fontSize:12,cursor:"pointer"}}>
-              {isOwned?"Remove ✗":"Add to Collection ✓"}
-            </button>
-            <button onClick={()=>setModal(null)} style={{padding:"8px 14px",borderRadius:999,border:"1px solid rgba(255,255,255,0.15)",background:"transparent",color:"#94a3b8",fontSize:12,cursor:"pointer"}}>Close</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ── RENDER ───────────────────────────────────────────────────────────────────
-  return (
-    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0d0b1e,#150a2e 50%,#091520)",fontFamily:"'Trebuchet MS',sans-serif",color:"#e2e8f0",paddingBottom:60}}>
-      <Modal />
-
-      {/* ── HEADER ── */}
-      <div style={{background:"rgba(0,0,0,0.6)",borderBottom:"2px solid rgba(251,191,36,0.2)",padding:"18px 16px 12px",textAlign:"center",backdropFilter:"blur(14px)",position:"sticky",top:0,zIndex:200}}>
-        <div style={{fontSize:30}}>😴</div>
-        <h1 style={{margin:"2px 0 0",fontSize:"clamp(17px,4vw,24px)",fontWeight:900,letterSpacing:"0.07em",
-          background:"linear-gradient(90deg,#fbbf24,#fde68a,#f59e0b)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",textTransform:"uppercase"}}>
-          Snorlax Master Checklist
-        </h1>
-        <div style={{fontSize:10,color:"#374151",marginTop:1}}>Every card · Every language · Every variant · Live prices</div>
-
-        {/* Stats row */}
-        {!loadingApi && (
-          <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:8,flexWrap:"wrap"}}>
-            {[
-              [`${ownedCount}/${total}`, "Cards Owned"],
-              [`${pct}%`, "Complete"],
-              [`$${ownedValue.toFixed(2)}`, "Collection Value"],
-            ].map(([val,lbl])=>(
-              <div key={lbl} style={{textAlign:"center"}}>
-                <div style={{fontSize:14,fontWeight:800,color:"#fbbf24"}}>{val}</div>
-                <div style={{fontSize:9,color:"#475569"}}>{lbl}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Progress bar */}
-        {!loadingApi && (
-          <div style={{maxWidth:380,margin:"8px auto 0"}}>
-            <div style={{background:"rgba(255,255,255,0.07)",borderRadius:999,height:5,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#fbbf24,#f59e0b)",borderRadius:999,transition:"width 0.5s",boxShadow:"0 0 6px rgba(251,191,36,0.4)"}} />
-            </div>
-          </div>
-        )}
-        {loadingApi && <div style={{marginTop:8,fontSize:10,color:"#374151"}}>⏳ {loadMsg}</div>}
-      </div>
-
-      {/* ── FILTERS ── */}
-      <div style={{maxWidth:960,margin:"0 auto",padding:"11px 12px 4px"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search name, set, number, rarity…"
-          style={{width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#e2e8f0",fontSize:12,marginBottom:8,outline:"none"}} />
-
-        {/* Era */}
-        <div style={{marginBottom:7}}>
-          <div style={{fontSize:9,color:"#374151",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:4}}>Era</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-            {["All",...ERA_ORDER].map(e=>(
-              <button key={e} onClick={()=>setEraFilter(e)} style={{padding:"3px 9px",borderRadius:999,border:`1px solid ${eraFilter===e?"#fbbf24":"rgba(255,255,255,0.08)"}`,background:eraFilter===e?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.03)",color:eraFilter===e?"#fbbf24":"#94a3b8",fontSize:9,cursor:"pointer",fontWeight:eraFilter===e?700:400}}>
-                {e==="All"?"All Eras":ERA_LABEL[e]||e}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Lang */}
-        <div style={{marginBottom:7}}>
-          <div style={{fontSize:9,color:"#374151",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:4}}>Language</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-            {ALL_LANGS.map(l=>(
-              <button key={l} onClick={()=>setLangFilter(l)} style={{padding:"3px 9px",borderRadius:999,border:`1px solid ${langFilter===l?"#fbbf24":"rgba(255,255,255,0.08)"}`,background:langFilter===l?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.03)",color:langFilter===l?"#fbbf24":"#94a3b8",fontSize:9,cursor:"pointer",fontWeight:langFilter===l?700:400}}>
-                {l==="All"?"All Languages":`${LANG_FLAG[l]} ${LANG_LABEL[l]||l}`}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Controls row */}
-        <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap",marginTop:4}}>
-          {[
-            ["✓ Owned", ownedOnly, ()=>setOwnedOnly(!ownedOnly), ownedOnly?"#4ade80":"#94a3b8"],
-            [view==="grid"?"☰ List":"⊞ Grid", false, ()=>setView(v=>v==="grid"?"list":"grid"), "#94a3b8"],
-          ].map(([lbl,active,fn,col])=>(
-            <button key={lbl} onClick={fn} style={{padding:"3px 10px",borderRadius:999,border:`1px solid ${active?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.08)"}`,background:active?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.03)",color:col,fontSize:9,cursor:"pointer",fontWeight:active?700:400}}>{lbl}</button>
-          ))}
-          {/* Sort */}
-          {["era","price","name"].map(s=>(
-            <button key={s} onClick={()=>setSortBy(s)} style={{padding:"3px 10px",borderRadius:999,border:`1px solid ${sortBy===s?"rgba(251,191,36,0.4)":"rgba(255,255,255,0.08)"}`,background:sortBy===s?"rgba(251,191,36,0.1)":"rgba(255,255,255,0.03)",color:sortBy===s?"#fbbf24":"#64748b",fontSize:9,cursor:"pointer",fontWeight:sortBy===s?700:400}}>
-              {s==="era"?"By Era":s==="price"?"By Price":"By Name"}
-            </button>
-          ))}
-          <span style={{fontSize:9,color:"#1e293b"}}>{filtered.length} shown · {total} total · tap=own · dbl=details</span>
-        </div>
-      </div>
-
-      {/* ── CARDS ── */}
-      <div style={{maxWidth:960,margin:"0 auto",padding:"2px 12px"}}>
-        {groupKeys.map(era => {
-          const cards = grouped[era]; if(!cards?.length) return null;
-          const oc = cards.filter(c=>owned.has(c.id)).length;
-          const col = ERA_COLOR[era]||"#6b7280";
-          const groupValue = cards.filter(c=>owned.has(c.id)&&c.market).reduce((s,c)=>s+c.market,0);
-          return (
-            <div key={era} style={{marginBottom:18}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,padding:"6px 11px",borderRadius:8,background:`linear-gradient(90deg,${col}18,transparent)`,borderLeft:`3px solid ${col}`}}>
-                <span style={{fontWeight:800,fontSize:12,color:"#e2e8f0"}}>{ERA_LABEL[era]||era}</span>
-                <div style={{flex:1,height:1,background:"rgba(255,255,255,0.04)"}} />
-                {groupValue > 0 && <span style={{fontSize:9,color:"#f59e0b",fontWeight:700}}>${groupValue.toFixed(2)}</span>}
-                <span style={{fontSize:9,color:"#475569"}}>{oc}/{cards.length}</span>
-                <div style={{width:40,height:3,borderRadius:999,background:"rgba(255,255,255,0.06)",overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${cards.length?oc/cards.length*100:0}%`,background:col,borderRadius:999,transition:"width 0.4s"}} />
-                </div>
-              </div>
-              {view==="grid"
-                ? <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:6}}>{cards.map(c=><GridCard key={c.id} card={c}/>)}</div>
-                : <div style={{display:"flex",flexDirection:"column",gap:4}}>{cards.map(c=><ListRow key={c.id} card={c}/>)}</div>
-              }
-            </div>
-          );
-        })}
-        {filtered.length===0&&<div style={{textAlign:"center",color:"#374151",padding:48,fontSize:13}}>No cards match. 😴</div>}
-      </div>
-    </div>
-  );
-}
+export const ALL_LANGS: string[] = [
+  "All", "EN", "JP", "KR", "ZH-TW", "ZH-CN", "PT", "DE", "FR", "IT", "ES",
+];
