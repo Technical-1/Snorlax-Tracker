@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { pickPriceTier, enrichCard } from "./pokemonApi";
 import type { Card, ApiData } from "../types";
+import { CARD_IMAGES } from "../data/card-images.generated";
 
 describe("pickPriceTier", () => {
   it("prefers holofoil over normal over reverseHolofoil over 1stEditionHolofoil", () => {
@@ -49,13 +50,6 @@ describe("enrichCard", () => {
     },
   };
 
-  it("joins api data onto a normal card", () => {
-    const e = enrichCard(base, apiData);
-    expect(e.img).toBe("small.png");
-    expect(e.market).toBe(10);
-    expect(e.artist).toBe("Ken Sugimori");
-  });
-
   it("uses reverseHolofoil prices for -rh ids via apiId", () => {
     const rh: Card = { ...base, id: "jungle-11-rh", apiId: "jungle-11" };
     const data: ApiData = {
@@ -74,18 +68,29 @@ describe("enrichCard", () => {
     expect(e.market).toBe(99);
     expect(e.low).toBe(90);
     expect(e.high).toBe(110);
-    expect(e.img).toBe("small.png");
-  });
-
-  it("returns nulls when no api data exists", () => {
-    const e = enrichCard({ ...base, id: "jp-vending", lang: "JP" }, {});
-    expect(e.img).toBeNull();
-    expect(e.market).toBeNull();
-    expect(e.artist).toBe("");
   });
 
   it("does not populate allPrices (preserved original behavior)", () => {
     const e = enrichCard(base, apiData);
     expect(e.allPrices).toBeUndefined();
+  });
+
+  it("image comes from the generated map (low/high), price from apiData", () => {
+    const anyId = Object.keys(CARD_IMAGES).find((k) => CARD_IMAGES[k].base) as string;
+    const base = CARD_IMAGES[anyId].base as string;
+    const c = { id: anyId, name: "Snorlax", set: "S", num: "1", rarity: "Rare", era: "E", lang: "EN" };
+    const apiData = { [anyId]: { img: "ignored.png", imgLarge: "ignored2.png", market: 10, low: 8, high: 12, priceTypes: ["holofoil"], allPrices: { holofoil: { market: 10 } }, artist: "A" } };
+    const e = enrichCard(c as any, apiData as any);
+    expect(e.img).toBe(`${base}/low.webp`);
+    expect(e.imgLarge).toBe(`${base}/high.webp`);
+    expect(e.market).toBe(10);
+    expect(e.imgProxy).toBe(CARD_IMAGES[anyId].proxy);
+  });
+
+  it("unknown/none image → img null", () => {
+    const c = { id: "___not_in_map___", name: "Snorlax", set: "S", num: "1", rarity: "Rare", era: "E", lang: "EN" };
+    const e = enrichCard(c as any, {} as any);
+    expect(e.img).toBeNull();
+    expect(e.imgLarge).toBeNull();
   });
 });

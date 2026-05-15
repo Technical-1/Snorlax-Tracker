@@ -1,4 +1,7 @@
 import type { ApiCardData, ApiData, Card, EnrichedCard, PriceTier } from "../types";
+import { CARD_IMAGES } from "../data/card-images.generated";
+import { API_IDS } from "../data/cards";
+import { buildIdQueries } from "./priceQuery";
 
 type RawPrices = Record<string, PriceTier>;
 
@@ -39,10 +42,13 @@ export function enrichCard(c: Card, apiData: ApiData): EnrichedCard {
     low = rh.low ?? null;
     high = rh.high ?? null;
   }
+  const gen = CARD_IMAGES[c.id];
+  const base = gen?.base ?? null;
   return {
     ...c,
-    img: api.img || null,
-    imgLarge: api.imgLarge || null,
+    img: base ? `${base}/low.webp` : null,
+    imgLarge: base ? `${base}/high.webp` : null,
+    imgProxy: gen?.proxy ?? false,
     market,
     low,
     high,
@@ -54,20 +60,18 @@ export async function fetchAllCardData(
   onProgress: (msg: string) => void
 ): Promise<ApiData> {
   const result: ApiData = {};
+  const queries = buildIdQueries(API_IDS, 40);
   try {
-    let page = 1;
-    while (true) {
-      onProgress(`Fetching card data (page ${page})…`);
-      const res = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:143&pageSize=250&page=${page}`
-      );
+    for (let i = 0; i < queries.length; i++) {
+      onProgress(`Fetching card data (batch ${i + 1}/${queries.length})…`);
+      const url =
+        `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(queries[i])}` +
+        `&pageSize=250`;
+      const res = await fetch(url);
       const data = await res.json();
       for (const card of data.data || []) {
         result[card.id] = mapApiCard(card);
       }
-      if (!data.data || data.data.length < 250) break;
-      page++;
-      if (page > 6) break;
     }
   } catch (e) {
     console.warn("API error", e);

@@ -25,6 +25,9 @@ export function ListRow({ card, isOwned, onToggle, onOpen }: Props) {
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontWeight:700,fontSize:11,color:isOwned?"#4ade80":"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{LANG_FLAG[card.lang]} {card.name}</div>
         <div style={{fontSize:9,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.set} · #{card.num}</div>
+        {card.imgProxy && card.img && (
+          <div style={{fontSize:7,fontWeight:700,color:"#fbbf24"}}>EN proxy image</div>
+        )}
         {card.note && <div style={{fontSize:8,color:"#374151",fontStyle:"italic"}}>{card.note}</div>}
       </div>
       <div style={{textAlign:"right",flexShrink:0}}>

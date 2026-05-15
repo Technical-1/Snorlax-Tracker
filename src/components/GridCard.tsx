@@ -27,6 +27,9 @@ export function GridCard({ card, isOwned, onToggle, onOpen }: Props) {
         }
         {isOwned && <div style={{position:"absolute",top:4,right:4,width:17,height:17,borderRadius:999,background:"#4ade80",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#000"}}>✓</div>}
         <div style={{position:"absolute",top:3,left:4,fontSize:11}}>{LANG_FLAG[card.lang]||"🌐"}</div>
+        {card.imgProxy && card.img && (
+          <div style={{position:"absolute",bottom:3,left:4,fontSize:7,fontWeight:700,color:"#000",background:"rgba(251,191,36,0.85)",borderRadius:3,padding:"1px 4px"}}>EN proxy</div>
+        )}
       </div>
       <div style={{padding:"6px 7px 7px",flex:1,display:"flex",flexDirection:"column",gap:1}}>
         <div style={{fontSize:10,fontWeight:700,color:isOwned?"#4ade80":"#e2e8f0",lineHeight:1.2}}>{card.name}</div>
