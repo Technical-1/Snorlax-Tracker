@@ -40,5 +40,15 @@ export type EnrichedCard = Card & {
   high: number | null;
   artist: string;
   imgProxy?: boolean;
+  priceManual?: boolean;
+  imgManual?: boolean;
   allPrices?: Record<string, PriceTier>;
 };
+
+export type UserOverride = {
+  img?: string;
+  imgKind?: "url" | "upload";
+  price?: number;
+};
+
+export type UserOverrides = Record<string, UserOverride>;
