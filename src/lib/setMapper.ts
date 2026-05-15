@@ -5,6 +5,13 @@ import type { TcgdexSetSummary } from "./tcgdexClient";
 // after stripSetLangSuffix). `null` = deliberately unmappable (→ proxy/none).
 // Extended during the Task 6 review gate as unmatched names are discovered.
 export const SET_ID_OVERRIDES: Record<string, string | null> = {
+  // EN sets whose TCGdex name drops the "EX " prefix.
+  "EX FireRed & LeafGreen": "ex6",
+  "EX Team Rocket Returns": "ex7",
+  "EX Dragon Frontiers": "ex15",
+  // EN subset with a different TCGdex name.
+  "Hidden Fates: Shiny Vault": "sma",
+  // Deliberately unmappable (no TCGdex equivalent) → proxy/none.
   "Expansion Sheet 1 – Vending": null,
   "Quick Starter Gift Set – Red Deck": null,
   "Unnumbered Promos": null,
