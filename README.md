@@ -49,6 +49,20 @@ everywhere (including the collection-value total) and persist across reloads
 under `localStorage["snorlax_user_v1"]`. Owned state remains under
 `localStorage["snorlax_v3"]`.
 
+## Export / import / print
+
+The toolbar under the filters has three actions:
+
+- **Export CSV** — downloads `snorlax-collection.csv` (one row per card:
+  owned, plus your manual price and manual image). Use it to move your
+  collection to another device.
+- **Import CSV** — upload that file on another browser/device. Owned state is
+  synced to the file; manual price/image from the file overwrite local values
+  when present (blank file fields keep what's already there). Images that
+  would exceed the storage budget are skipped and reported.
+- **Print** — opens a print-friendly checklist of every card (name, set,
+  number, rarity, owned ✓), grouped by era — no images or prices.
+
 ## Structure
 
 - `src/data/cards.ts` — the full card database + era/language constants

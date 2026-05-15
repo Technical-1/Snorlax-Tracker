@@ -64,5 +64,9 @@ export function useUserCardData(opts: { budgetBytes?: number } = {}) {
     [mutate]
   );
 
-  return { overrides, setImage, clearImage, setPrice, clearPrice };
+  const replaceOverrides = useCallback((next: UserOverrides) => {
+    setOverrides({ ...next });
+  }, []);
+
+  return { overrides, setImage, clearImage, setPrice, clearPrice, replaceOverrides };
 }

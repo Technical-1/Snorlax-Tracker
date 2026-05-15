@@ -25,5 +25,9 @@ export function useOwnedCards() {
     });
   }, []);
 
-  return { owned, toggle };
+  const replaceOwned = useCallback((next: Set<string>) => {
+    setOwned(new Set(next));
+  }, []);
+
+  return { owned, toggle, replaceOwned };
 }

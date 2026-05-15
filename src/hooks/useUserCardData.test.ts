@@ -37,3 +37,14 @@ describe("useUserCardData", () => {
     expect(result.current.overrides["c1"]).toBeUndefined();
   });
 });
+
+describe("useUserCardData.replaceOverrides", () => {
+  it("replaces all overrides and persists", () => {
+    const { result, unmount } = renderHook(() => useUserCardData());
+    act(() => result.current.replaceOverrides({ z: { price: 7 } }));
+    expect(result.current.overrides).toEqual({ z: { price: 7 } });
+    unmount();
+    const { result: r2 } = renderHook(() => useUserCardData());
+    expect(r2.current.overrides).toEqual({ z: { price: 7 } });
+  });
+});
