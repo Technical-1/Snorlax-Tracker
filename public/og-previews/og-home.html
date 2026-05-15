@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    .og-card {
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(160deg,#0d0b1e,#150a2e 50%,#091520);
+      font-family: 'Trebuchet MS', sans-serif;
+      color: #e2e8f0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+    }
+    .glow {
+      position: absolute;
+      width: 900px; height: 900px;
+      top: -300px; left: 50%; transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(251,191,36,0.16), transparent 60%);
+      pointer-events: none;
+    }
+    .grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(circle at 50% 40%, #000 30%, transparent 75%);
+    }
+    .emoji { font-size: 132px; line-height: 1; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5)); }
+    h1 {
+      margin-top: 18px;
+      font-size: 80px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg,#fbbf24,#fde68a,#f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    .tagline { margin-top: 16px; font-size: 26px; color: #94a3b8; letter-spacing: 0.02em; }
+    .tags { margin-top: 34px; display: flex; gap: 14px; }
+    .tag {
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(251,191,36,0.35);
+      background: rgba(251,191,36,0.10);
+      color: #fbbf24;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .url {
+      position: absolute;
+      bottom: 40px;
+      font-size: 20px;
+      color: #475569;
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+  <div class="og-card">
+    <div class="grid"></div>
+    <div class="glow"></div>
+    <div class="emoji">😴</div>
+    <h1>Snorlax Master Checklist</h1>
+    <div class="tagline">Every card · Every language · Every variant</div>
+    <div class="tags">
+      <div class="tag">182 cards</div>
+      <div class="tag">Live prices</div>
+      <div class="tag">Owned tracker</div>
+      <div class="tag">Export &amp; print</div>
+    </div>
+    <div class="url">snorlax-tracker.vercel.app</div>
+  </div>
+</body>
+</html>
