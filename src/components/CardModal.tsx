@@ -21,6 +21,9 @@ export function CardModal({ modal, isOwned, loadingApi, onToggle, onClose }: Pro
           {(modal.imgLarge||modal.img)
             ? <img src={modal.imgLarge||modal.img||undefined} alt={modal.name} style={{maxWidth:"100%",maxHeight:280,borderRadius:10,boxShadow:"0 6px 40px rgba(0,0,0,0.6)"}} />
             : <div style={{fontSize:72,padding:16}}>😴</div>}
+            {modal.imgProxy && (modal.imgLarge||modal.img) && (
+              <div style={{marginTop:6,fontSize:9,color:"#fbbf24"}}>Showing English card image (no localized scan available)</div>
+            )}
           <div style={{marginTop:10,fontWeight:900,fontSize:16,color:"#e2e8f0"}}>{modal.name}</div>
           <div style={{color:"#94a3b8",fontSize:12,marginTop:3}}>{LANG_FLAG[modal.lang]} {modal.set}</div>
           <div style={{color:"#64748b",fontSize:11,marginTop:2}}>#{modal.num} · {modal.rarity}</div>
