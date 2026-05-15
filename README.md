@@ -67,6 +67,7 @@ The toolbar under the filters has three actions:
 
 - `src/data/cards.ts` — the full card database + era/language constants
 - `src/data/card-images.generated.ts` — resolved image map (generated; do not edit by hand)
+- `src/types.ts` — shared card / user-data type definitions
 - `src/lib/pokemonApi.ts` — price fetch (id-batched), price-tier selection, card enrichment
 - `src/lib/priceQuery.ts` — pokemontcg.io id-query builder
 - `src/lib/format.ts` — rarity glow color + price formatting
@@ -74,7 +75,14 @@ The toolbar under the filters has three actions:
 - `src/lib/resolveUtils.ts` — collector-number / language / name helpers
 - `src/lib/setMapper.ts` — set-name → TCGdex set-id map + overrides
 - `src/lib/imageResolver.ts` — confidence + English-proxy + reverse-holo resolution
+- `src/lib/userOverrides.ts` — manual image/price override resolution
+- `src/lib/collectionCsv.ts` — CSV export/import serialization
+- `src/lib/mergeImport.ts` — merge imported CSV into local owned/manual state
+- `src/lib/imageDownscale.ts` — client-side image downscaling for uploads
+- `src/lib/storageBudget.ts` — localStorage budget accounting for stored images
 - `scripts/resolve-images.ts` — offline resolver that writes the generated map
-- `src/hooks/` — `useCardPrices` (fetch), `useOwnedCards` (persistence)
-- `src/components/` — Header, Filters, CardCollection, GridCard, ListRow, CardModal
+- `src/hooks/` — `useCardPrices` (fetch), `useOwnedCards` (owned persistence),
+  `useUserCardData` (manual image/price persistence)
+- `src/components/` — Header, Filters, CardCollection, GridCard, ListRow,
+  CardDetail, CollectionToolbar, PrintView
 - `src/App.tsx` — composition + filtering/sorting/grouping
