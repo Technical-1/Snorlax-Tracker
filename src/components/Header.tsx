@@ -15,7 +15,7 @@ export function Header({ ownedCount, total, pct, ownedValue, loadingApi, loadMsg
         background:"linear-gradient(90deg,#fbbf24,#fde68a,#f59e0b)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",textTransform:"uppercase"}}>
         Snorlax Master Checklist
       </h1>
-      <div style={{fontSize:10,color:"#374151",marginTop:1}}>Every card · Every language · Every variant · Live prices</div>
+      <div style={{fontSize:10,color:"#374151",marginTop:1}}>Every card · Every language · Every variant · Tap a card to view &amp; edit</div>
 
       {/* Stats row */}
       {!loadingApi && (
