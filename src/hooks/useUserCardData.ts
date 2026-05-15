@@ -25,17 +25,14 @@ export function useUserCardData(opts: { budgetBytes?: number } = {}) {
   }, [overrides]);
 
   const mutate = useCallback(
-    (id: string, fn: (rec: UserOverride) => UserOverride): UserOverrides => {
-      let next: UserOverrides = {};
+    (id: string, fn: (rec: UserOverride) => UserOverride): void => {
       setOverrides((prev) => {
         const rec = fn({ ...(prev[id] ?? {}) });
         const copy = { ...prev };
         if (!rec.img && rec.price == null) delete copy[id];
         else copy[id] = rec;
-        next = copy;
         return copy;
       });
-      return next;
     },
     []
   );

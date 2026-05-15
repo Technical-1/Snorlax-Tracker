@@ -34,12 +34,22 @@ export function CardDetail(props: Props) {
   const [urlDraft, setUrlDraft] = useState("");
   const [priceDraft, setPriceDraft] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [fileKey, setFileKey] = useState(0);
 
   useEffect(() => {
     setUrlDraft(override?.imgKind === "url" ? override.img ?? "" : "");
     setPriceDraft(override?.price != null ? String(override.price) : "");
     setErr(null);
-  }, [card.id, override?.img, override?.price, override?.imgKind]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.id]);
+
+  useEffect(() => {
+    setUrlDraft(override?.imgKind === "url" ? override.img ?? "" : "");
+  }, [override?.img, override?.imgKind]);
+
+  useEffect(() => {
+    setPriceDraft(override?.price != null ? String(override.price) : "");
+  }, [override?.price]);
 
   const priceRows = Object.entries(fetchedAllPrices || {}).filter(([, v]) => v?.market);
 
@@ -97,7 +107,7 @@ export function CardDetail(props: Props) {
             <button onClick={applyUrl} style={btnStyle}>Set URL</button>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}>
-            <input type="file" accept="image/*" onChange={(e)=>applyFile(e.target.files?.[0])} style={{fontSize:11,color:"#94a3b8",flex:1}} />
+            <input key={fileKey} type="file" accept="image/*" onChange={async (e)=>{ await applyFile(e.target.files?.[0]); setFileKey((k)=>k+1); }} style={{fontSize:11,color:"#94a3b8",flex:1}} />
             {card.imgManual && <button onClick={onClearImage} style={ghostBtn}>Clear image</button>}
           </div>
         </div>
