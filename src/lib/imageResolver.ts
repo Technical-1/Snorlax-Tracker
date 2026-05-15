@@ -39,7 +39,7 @@ export async function resolveImages(
   for (const c of cards) {
     if (c.id.includes("-rh")) continue;
 
-    // 1a. Try a confident match in the card's own language.
+    // 1a. Confident match in the card's own language.
     const own = await confidentHit(lookup, langCode(c.lang), c.set, c.num);
     if (own) {
       out[c.id] = { base: own, proxy: false };
@@ -54,35 +54,20 @@ export async function resolveImages(
       continue;
     }
 
-    // 1c. Last resort: an English companion card with same stripped set+number.
-    //     The companion list is pre-curated (trusted Snorlax cards), so we skip
-    //     the isSnorlaxName guard and allow a looser set match when the companion
-    //     list is explicitly provided (englishCompanions !== cards).
+    // 1c. Last resort: an already-resolved English companion with the same
+    // stripped set name + collector number.
     const n = collectorNumber(c.num);
-    let companionImage: string | null = null;
-    if (n) {
-      const explicitCompanions = englishCompanions !== cards;
-      for (const e of englishCompanions) {
-        if (e.lang !== "EN" || e.id.includes("-rh")) continue;
-        if (collectorNumber(e.num) !== n) continue;
-        // Set match: exact stripped match, or skip if companions were explicitly provided.
-        if (!explicitCompanions && stripSetLangSuffix(e.set) !== enSet) continue;
-        // Try a resolved image from out first.
-        if (out[e.id]?.base) {
-          companionImage = out[e.id].base;
-          break;
-        }
-        // Otherwise do a direct lookup without isSnorlaxName (card is trusted from our list).
-        const cn = collectorNumber(e.num);
-        if (!cn) continue;
-        const hit = await lookup("en", e.set, cn);
-        if (hit?.image && hit.localId === cn) {
-          companionImage = hit.image;
-          break;
-        }
-      }
-    }
-    out[c.id] = companionImage ? { base: companionImage, proxy: true } : NONE;
+    const companion = n
+      ? englishCompanions.find(
+          (e) =>
+            e.lang === "EN" &&
+            !e.id.includes("-rh") &&
+            stripSetLangSuffix(e.set) === enSet &&
+            collectorNumber(e.num) === n &&
+            out[e.id]?.base
+        )
+      : undefined;
+    out[c.id] = companion ? { base: out[companion.id].base, proxy: true } : NONE;
   }
 
   // Pass 2: reverse-holo cards reuse their base (apiId) card's result.

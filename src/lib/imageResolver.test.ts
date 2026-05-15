@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveImages, type CardLookup } from "./imageResolver";
+import { resolveImages, summarize, type CardLookup } from "./imageResolver";
 import type { Card } from "../types";
 
 const card = (p: Partial<Card>): Card => ({
@@ -17,11 +17,18 @@ describe("resolveImages", () => {
     expect(out["jungle-11"]).toEqual({ base: "https://assets.tcgdex.net/en/base/base2/11", proxy: false });
   });
 
-  it("rejects non-Snorlax name even on set+number hit (Snorlax Doll guard)", async () => {
-    const lookup: CardLookup = async () =>
-      ({ id: "x", image: "u", localId: "11", name: "カビゴンドール" });
-    const out = await resolveImages([card({ id: "jp-x", lang: "JP", set: "Pokémon Jungle (JP)", num: "11/64" })], lookup, [card({ id: "jungle-11", set: "Jungle", num: "11/64" })]);
-    expect(out["jp-x"].proxy).toBe(true);
+  it("Snorlax-Doll guard: own-lang hit is the wrong card → falls back to English proxy", async () => {
+    // JP own-language lookup returns the Snorlax Doll (must be rejected by the
+    // name guard); the English lookup returns the real Snorlax → English proxy.
+    const lookup: CardLookup = async (lang, _set, n) =>
+      n === "11"
+        ? lang === "en"
+          ? { id: "base2-11", image: "https://assets.tcgdex.net/en/base/base2/11", localId: "11", name: "Snorlax" }
+          : { id: "x", image: "u", localId: "11", name: "カビゴンドール" }
+        : null;
+    const jp = card({ id: "jp-x", lang: "JP", set: "Jungle (JP)", num: "11/64" });
+    const out = await resolveImages([jp], lookup);
+    expect(out["jp-x"]).toEqual({ base: "https://assets.tcgdex.net/en/base/base2/11", proxy: true });
   });
 
   it("foreign miss falls back to English proxy by stripped set + number", async () => {
@@ -44,6 +51,19 @@ describe("resolveImages", () => {
     expect(out["jungle-27-rh"].proxy).toBe(false);
   });
 
+  it("companion fallback: pre-resolved English card with same stripped set+number", async () => {
+    // No TCGdex hit in any language; a JP card whose stripped set ("Jungle")
+    // matches an English card resolved earlier in the same run.
+    const lookup: CardLookup = async (lang, _set, n) =>
+      lang === "en" && n === "27"
+        ? { id: "base2-27", image: "https://assets.tcgdex.net/en/base/base2/27", localId: "27", name: "Snorlax" }
+        : null;
+    const en = card({ id: "jungle-27", set: "Jungle", num: "27/64" });
+    const jp = card({ id: "jp-jng-27", lang: "JP", set: "Jungle (JP)", num: "27/64" });
+    const out = await resolveImages([en, jp], lookup);
+    expect(out["jp-jng-27"]).toEqual({ base: "https://assets.tcgdex.net/en/base/base2/27", proxy: true });
+  });
+
   it("no hit anywhere → base null, proxy false", async () => {
     const lookup: CardLookup = async () => null;
     const out = await resolveImages([card({ id: "jp-vending", lang: "JP", set: "Expansion Sheet 1 – Vending", num: "—" })], lookup);
@@ -54,7 +74,6 @@ describe("resolveImages", () => {
     const lookup: CardLookup = async (_lang, _set, n) =>
       n === "11" ? { id: "base2-11", image: "u", localId: "11", name: "Snorlax" } : null;
     const out = await resolveImages([card({ id: "jungle-11" }), card({ id: "none", num: "—" })], lookup);
-    const { summarize } = await import("./imageResolver");
     expect(summarize(out)).toEqual({ real: 1, proxy: 0, none: 1, total: 2 });
   });
 });
