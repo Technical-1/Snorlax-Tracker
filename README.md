@@ -5,6 +5,8 @@ every era, language, and variant. Card images are resolved offline from the
 TCGdex API; live TCGPlayer prices come from the pokemontcg.io API. Owned
 cards are saved to the browser's `localStorage`.
 
+**Live demo:** https://snorlax-tracker.vercel.app
+
 ## Run
 
 ```bash
@@ -86,3 +88,17 @@ The toolbar under the filters has three actions:
 - `src/components/` — Header, Filters, CardCollection, GridCard, ListRow,
   CardDetail, CollectionToolbar, PrintView
 - `src/App.tsx` — composition + filtering/sorting/grouping
+
+## Deployment
+
+Hosted on [Vercel](https://snorlax-tracker.vercel.app). The production build
+(`npm run build` → `dist/`) is a fully static bundle; Vercel rebuilds and
+redeploys on every push to `main`.
+
+## License
+
+[MIT](LICENSE) © Jacob Kanfer
+
+## Author
+
+Jacob Kanfer — [GitHub](https://github.com/Technical-1)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Snorlax Master Checklist is a single-page React app that tracks every Snorlax Pokémon TCG card ever printed — across every era, language, and variant (182 entries). It shows live TCGPlayer prices and card scans, lets you check off the ones you own, manually override images and prices per card, and move your whole collection between devices via a CSV export/import or print a paper checklist. It's fully client-side with no accounts or backend; everything persists in the browser.
+Snorlax Master Checklist is a single-page React app that tracks every Snorlax Pokémon TCG card ever printed — across every era, language, and variant (182 entries). It shows live TCGPlayer prices and card scans, lets you check off the ones you own, manually override images and prices per card, and move your whole collection between devices via a CSV export/import or print a paper checklist. It's fully client-side with no accounts or backend; everything persists in the browser, and it's deployed as a static site on Vercel (https://snorlax-tracker.vercel.app).
 
 ## Key Features
 
